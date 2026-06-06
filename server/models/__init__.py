@@ -4,3 +4,4 @@ db = SQLAlchemy()
 
 from .user import User, Vendor
 from .rfq import Rfq
+from .bid import Bid

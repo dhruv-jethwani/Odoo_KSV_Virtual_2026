@@ -1,35 +1,34 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 
 export default function Quotations() {
-    // view state can be: 'list', 'submit', or 'compare'
     const [view, setView] = useState('list') 
     const [searchTerm, setSearchTerm] = useState('')
+    const [quotations, setQuotations] = useState([])
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Mock data for Quotation List
-    const [quotations, setQuotations] = useState([
-        { id: 'QT-5012', rfq: 'RFQ-1042', vendor: 'Vendor Infra Sapphire', date: '12 May 2026', amount: '$15,400', status: 'Pending Approval' },
-        { id: 'QT-5013', rfq: 'RFQ-1043', vendor: 'Tech Supplies Co.', date: '14 May 2026', amount: '$4,200', status: 'Approved' },
-        { id: 'QT-5010', rfq: 'RFQ-1041', vendor: 'Stationery Hub', date: '02 May 2026', amount: '$850', status: 'Rejected' },
-    ])
-
-    // Mock State for New Quotation Submission
+    // Form states
+    const [rfqId, setRfqId] = useState('')
+    const [deliveryTime, setDeliveryTime] = useState('')
+    const [terms, setTerms] = useState('')
     const [quoteItems, setQuoteItems] = useState([
-        { id: 1, item: 'Office Chair Mesh', qty: 50, rate: 150, tax: 10 },
-        { id: 2, item: 'Executive Desk', qty: 10, rate: 450, tax: 10 }
+        { id: Date.now(), item: '', qty: 1, rate: 0, tax: 0 }
     ])
 
-    // Mock Data for Quotation Comparison (Screen 7)
-    const comparisonData = {
-        rfqTitle: "Office Furniture Procurement Q2",
-        rfqId: "RFQ-1042",
-        quotes: [
-            { id: 'QT-5012', vendor: 'Vendor Infra Sapphire', amount: 15400, delivery: '15 Days', rating: 4, terms: 'Net 30' },
-            { id: 'QT-5014', vendor: 'Global Office Sol.', amount: 14200, delivery: '20 Days', rating: 5, terms: 'Net 15' },
-            { id: 'QT-5015', vendor: 'Premium Furnishers', amount: 16800, delivery: '10 Days', rating: 3, terms: 'Due on receipt' }
-        ]
+    // Fetch live data from backend
+    const fetchQuotations = async () => {
+        try {
+            const response = await axios.get('http://127.0.0.1:5000/api/bid/')
+            setQuotations(response.data)
+        } catch (error) {
+            console.error("Error fetching quotes:", error)
+        }
     }
 
-    // Helper functions for quotation submission calculation
+    useEffect(() => {
+        fetchQuotations()
+    }, [])
+
     const calculateRowTotal = (qty, rate, tax) => {
         const subtotal = (qty || 0) * (rate || 0)
         const taxAmount = subtotal * ((tax || 0) / 100)
@@ -44,32 +43,48 @@ export default function Quotations() {
         ))
     }
 
-    const handleSubmitQuote = (e) => {
+    const handleSubmitQuote = async (e) => {
         e.preventDefault()
-        const newQuote = {
-            id: `QT-${Math.floor(5000 + Math.random() * 1000)}`,
-            rfq: 'RFQ-1042',
-            vendor: 'Your Company (Vendor)',
-            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-            amount: `$${grandTotal.toLocaleString()}`,
-            status: 'Pending Approval'
+        setIsSubmitting(true)
+        
+        try {
+            await axios.post('http://127.0.0.1:5000/api/bid/add', {
+                rfq_id: rfqId,
+                amount: grandTotal,
+                delivery: deliveryTime,
+                terms: terms
+            })
+            
+            fetchQuotations()
+            setView('list')
+            setQuoteItems([{ id: Date.now(), item: '', qty: 1, rate: 0, tax: 0 }])
+        } catch (error) {
+            alert(error.response?.data?.error || "Submission failed")
+            console.error(error)
+        } finally {
+            setIsSubmitting(false)
         }
-        setQuotations([newQuote, ...quotations])
-        setView('list')
     }
 
-    // Find the lowest price for the comparison highlight
-    const lowestPrice = Math.min(...comparisonData.quotes.map(q => q.amount))
-
-    // Helper for rendering stars
-    const renderStars = (rating) => {
-        return "★".repeat(rating) + "☆".repeat(5 - rating)
+    const handleCompareAction = async (quote, action) => {
+        try {
+            await axios.patch(`http://127.0.0.1:5000/api/bid/${quote.raw_id}/status`, {
+                status: action
+            })
+            fetchQuotations()
+            setView('list')
+        } catch (error) {
+            alert("Error updating status")
+        }
     }
 
-    // ==========================================
-    // VIEW 1: LIST
-    // ==========================================
+    // View: List
     if (view === 'list') {
+        const filteredQuotes = quotations.filter(q => 
+            (q.vendor?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+            (q.id?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+        )
+
         return (
             <div className="animate-fade-in">
                 <header className="dashboard-header flex-between">
@@ -78,10 +93,10 @@ export default function Quotations() {
                         <p>Manage received quotes and submit new ones.</p>
                     </div>
                     <div className="action-group">
-                        <button className="btn-secondary animate-slide-up" onClick={() => setView('compare')}>
+                        <button className="btn-secondary animate-slide-up" onClick={() => setView('compare')} disabled={quotations.length === 0}>
                             📊 Compare Quotes
                         </button>
-                        <button className="btn-primary animate-slide-up" style={{ animationDelay: '0.1s' }} onClick={() => setView('submit')}>
+                        <button className="btn-primary animate-slide-up" onClick={() => setView('submit')}>
                             + Submit Quotation
                         </button>
                     </div>
@@ -90,10 +105,6 @@ export default function Quotations() {
                 <section className="table-container animate-slide-up" style={{ animationDelay: '0.2s' }}>
                     <div className="vendors-toolbar">
                         <div className="search-box">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
                             <input 
                                 type="text" 
                                 placeholder="Search quotations by ID or Vendor..." 
@@ -117,23 +128,26 @@ export default function Quotations() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {quotations.filter(q => q.vendor.toLowerCase().includes(searchTerm.toLowerCase()) || q.id.toLowerCase().includes(searchTerm.toLowerCase())).map((quote, index) => (
+                                {filteredQuotes.map((quote, index) => (
                                     <tr key={index}>
                                         <td><strong>{quote.id}</strong></td>
-                                        <td>{quote.rfq}</td>
+                                        <td>{quote.rfq_id}</td>
                                         <td>{quote.vendor}</td>
                                         <td>{quote.date}</td>
-                                        <td><strong>{quote.amount}</strong></td>
+                                        <td><strong>${quote.amount.toLocaleString()}</strong></td>
                                         <td>
-                                            <span className={`status-badge status-${quote.status.split(' ')[0].toLowerCase()}`}>
+                                            <span className={`status-badge status-${quote.status.toLowerCase()}`}>
                                                 {quote.status}
                                             </span>
                                         </td>
                                         <td>
-                                            <button className="action-btn text-blue">View</button>
+                                            <button className="action-btn text-blue" onClick={() => setView('compare')}>View / Compare</button>
                                         </td>
                                     </tr>
                                 ))}
+                                {filteredQuotes.length === 0 && (
+                                    <tr><td colSpan="7" className="empty-state">No quotations found.</td></tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -142,27 +156,27 @@ export default function Quotations() {
         )
     }
 
-    // ==========================================
-    // VIEW 2: COMPARE QUOTATIONS (Screen 7)
-    // ==========================================
+    // View: Compare Quotations
     if (view === 'compare') {
+        const lowestPrice = Math.min(...quotations.map(q => q.amount))
+        
         return (
             <div className="animate-fade-in">
                 <header className="dashboard-header flex-between">
                     <div>
                         <h1>Quotation Comparison</h1>
-                        <p className="subtitle-highlight">RFQ: {comparisonData.rfqTitle} — {comparisonData.quotes.length} quotations received</p>
+                        <p className="subtitle-highlight">Comparing {quotations.length} received quotations</p>
                     </div>
-                    <button className="btn-secondary" onClick={() => setView('list')}>← Back to List</button>
+                    <button className="btn-secondary" onClick={() => setView('list')}>← Back</button>
                 </header>
 
-                <section className="form-container animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                <section className="form-container animate-slide-up">
                     <div className="table-wrapper compare-table-wrapper">
                         <table className="compare-table">
                             <thead>
                                 <tr>
-                                    <th className="compare-header-row">Comparison Criteria</th>
-                                    {comparisonData.quotes.map((quote, index) => (
+                                    <th className="compare-header-row">Criteria</th>
+                                    {quotations.map((quote, index) => (
                                         <th key={index} className={quote.amount === lowestPrice ? 'highlight-col-header' : ''}>
                                             {quote.vendor}
                                             <div className="compare-quote-id">{quote.id}</div>
@@ -173,7 +187,7 @@ export default function Quotations() {
                             <tbody>
                                 <tr>
                                     <td className="compare-row-label">Total Amount</td>
-                                    {comparisonData.quotes.map((quote, index) => (
+                                    {quotations.map((quote, index) => (
                                         <td key={index} className={quote.amount === lowestPrice ? 'highlight-cell best-price' : 'compare-value'}>
                                             ${quote.amount.toLocaleString()}
                                             {quote.amount === lowestPrice && <span className="best-tag">Lowest Price</span>}
@@ -181,36 +195,24 @@ export default function Quotations() {
                                     ))}
                                 </tr>
                                 <tr>
-                                    <td className="compare-row-label">Delivery Timeline</td>
-                                    {comparisonData.quotes.map((quote, index) => (
+                                    <td className="compare-row-label">Delivery</td>
+                                    {quotations.map((quote, index) => (
                                         <td key={index} className={quote.amount === lowestPrice ? 'highlight-cell' : 'compare-value'}>
                                             {quote.delivery}
                                         </td>
                                     ))}
                                 </tr>
                                 <tr>
-                                    <td className="compare-row-label">Vendor Rating</td>
-                                    {comparisonData.quotes.map((quote, index) => (
-                                        <td key={index} className={quote.amount === lowestPrice ? 'highlight-cell' : 'compare-value'}>
-                                            <span className="rating-stars">{renderStars(quote.rating)}</span>
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="compare-row-label">Payment Terms</td>
-                                    {comparisonData.quotes.map((quote, index) => (
-                                        <td key={index} className={quote.amount === lowestPrice ? 'highlight-cell' : 'compare-value'}>
-                                            {quote.terms}
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
                                     <td className="compare-row-label">Action</td>
-                                    {comparisonData.quotes.map((quote, index) => (
+                                    {quotations.map((quote, index) => (
                                         <td key={index} className={quote.amount === lowestPrice ? 'highlight-cell' : 'compare-value'}>
-                                            <button className={quote.amount === lowestPrice ? 'btn-primary w-100' : 'btn-secondary w-100'}>
-                                                Select & Approve
-                                            </button>
+                                            {quote.status === 'Pending' ? (
+                                                <button onClick={() => handleCompareAction(quote, 'Accepted')} className={quote.amount === lowestPrice ? 'btn-primary w-100' : 'btn-secondary w-100'}>
+                                                    Approve Quote
+                                                </button>
+                                            ) : (
+                                                <span className={`status-badge status-${quote.status.toLowerCase()}`}>{quote.status}</span>
+                                            )}
                                         </td>
                                     ))}
                                 </tr>
@@ -222,23 +224,33 @@ export default function Quotations() {
         )
     }
 
-    // ==========================================
-    // VIEW 3: SUBMIT QUOTATION (Screen 6)
-    // ==========================================
+    // View: Submit Quotation
     return (
         <div className="animate-fade-in">
             <header className="dashboard-header flex-between">
                 <div>
                     <h1>Submit Quotation</h1>
-                    <p className="subtitle-highlight">RFQ: Office Furniture Procurement Q2 — Deadline: 15 June 2026</p>
+                    <p className="subtitle-highlight">Provide competitive pricing for your associated RFQs.</p>
                 </div>
-                <button className="btn-secondary" onClick={() => setView('list')}>← Back to List</button>
+                <button className="btn-secondary" onClick={() => setView('list')}>← Back</button>
             </header>
 
-            <section className="form-container animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <section className="form-container animate-slide-up">
                 <form onSubmit={handleSubmitQuote}>
                     
-                    {/* Quotation Table */}
+                    <div className="form-section">
+                        <div className="form-grid">
+                            <label className="input-group">
+                                <span>Target RFQ Reference</span>
+                                <input type="text" required placeholder="e.g., RFQ-1042" value={rfqId} onChange={(e) => setRfqId(e.target.value)} />
+                            </label>
+                            <label className="input-group">
+                                <span>Estimated Delivery Time</span>
+                                <input type="text" required placeholder="e.g., 15 Days" value={deliveryTime} onChange={(e) => setDeliveryTime(e.target.value)} />
+                            </label>
+                        </div>
+                    </div>
+                    
                     <div className="form-section">
                         <div className="table-wrapper quote-table-wrapper">
                             <table className="quote-input-table">
@@ -279,19 +291,17 @@ export default function Quotations() {
                     </div>
 
                     <div className="form-section split-section">
-                        <label className="input-group">
-                            <span>Remarks / Notes</span>
-                            <textarea rows="3" placeholder="Enter any additional notes regarding this quotation..."></textarea>
-                        </label>
-                        <label className="input-group">
-                            <span>Terms & Conditions</span>
-                            <textarea rows="3" placeholder="Payment terms, delivery timeline, warranty info..."></textarea>
+                        <label className="input-group full-width">
+                            <span>Terms & Conditions / Remarks</span>
+                            <textarea rows="3" value={terms} onChange={e => setTerms(e.target.value)} placeholder="Payment terms, warranty info..."></textarea>
                         </label>
                     </div>
 
                     <div className="form-actions">
                         <button type="button" className="btn-secondary" onClick={() => setView('list')}>Cancel</button>
-                        <button type="submit" className="btn-primary">Submit Quotation</button>
+                        <button type="submit" disabled={isSubmitting} className="btn-primary">
+                            {isSubmitting ? "Submitting..." : "Submit Quotation"}
+                        </button>
                     </div>
                 </form>
             </section>
