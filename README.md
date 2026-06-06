@@ -46,7 +46,7 @@ Navigate to the server directory, install the Python dependencies, and start the
 3. Activate the virtual environment (Windows: `venv\Scripts\activate` | Mac/Linux: `source venv/bin/activate`).
 4. Install requirements: `pip install -r requirements.txt`
 5. Create a `.env` file in the `server` directory with the following variables:
-   * `DATABASE_URL=sqlite:///vendorbridge.db`
+   * `DATABASE_URL="mysql+pymysql://Pwk8w5AKWaQzwZP.root:<PASSWORD>@gateway01.us-west-2.prod.aws.tidbcloud.com:4000/odoo?ssl_verify_cert=true&ssl_verify_identity=true"`
    * `JWT_SECRET=your_secure_secret_key_here`
 6. Run the Flask server: `python app.py` (The API will run on `http://127.0.0.1:5000`).
 
