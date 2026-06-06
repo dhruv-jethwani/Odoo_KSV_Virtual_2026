@@ -35,10 +35,10 @@ export default function Landing() {
                     
                     <div className="landing-actions animate-slide-up" style={{ animationDelay: '0.3s' }}>
                         <a className="landing-button landing-button-primary" href="#signup">
-                            Get Started
+                            Get Started for Free - Register Now
                         </a>
                         <a className="landing-button landing-button-secondary" href="#login">
-                            Go to Dashboard
+                            Login to Dashboard
                         </a>
                     </div>
                 </div>
