@@ -7,3 +7,4 @@ from .rfq import Rfq
 from .bid import Bid
 from .po import PurchaseOrder
 from .invoice import Invoice
+from .activity import ActivityLog

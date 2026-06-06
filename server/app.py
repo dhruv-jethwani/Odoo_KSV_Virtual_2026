@@ -10,6 +10,7 @@ from routes.approval import approval_bp
 from routes.po import po_bp
 from routes.invoice import invoice_bp
 from routes.report import report_bp
+from routes.activity import activity_bp
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -30,6 +31,7 @@ app.register_blueprint(approval_bp, url_prefix='/api/approval')
 app.register_blueprint(po_bp, url_prefix='/api/po')
 app.register_blueprint(invoice_bp, url_prefix='/api/invoice')
 app.register_blueprint(report_bp, url_prefix='/api/report')
+app.register_blueprint(activity_bp, url_prefix='/api/activity')
 
 with app.app_context():
     db.create_all()
