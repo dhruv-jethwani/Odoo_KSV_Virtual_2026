@@ -13,6 +13,7 @@ class User(db.Model):
     country = db.Column(db.String(255), nullable=False)
     phoneno = db.Column(db.String(20))
     role = db.Column(db.String(30), nullable=False)
+    approval_status = db.Column(db.String(50), default='Approved') # Fix: Added missing column
     
     # Establish relationship to Vendor profile
     vendor_profile = db.relationship('Vendor', backref='user_account', uselist=False)
@@ -30,7 +31,8 @@ class User(db.Model):
             "lastName": self.last_name,
             "username": self.username,
             "email": self.email,
-            "role": self.role
+            "role": self.role,
+            "approvalStatus": self.approval_status
         }
 
 class Vendor(db.Model):
@@ -50,6 +52,7 @@ class Vendor(db.Model):
             "contactPerson": self.contact_person,
             "taxId": self.tax_id,
             "complianceStatus": self.compliance_status,
-            "email": self.user_account.email, # Pulls from connected user table
-            "phone": self.user_account.phoneno
+            # Fix: Safeguards in case the joined user is missing/null to prevent 500 errors
+            "email": self.user_account.email if self.user_account else "", 
+            "phone": self.user_account.phoneno if self.user_account else ""
         }

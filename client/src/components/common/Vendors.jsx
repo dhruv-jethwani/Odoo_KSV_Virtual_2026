@@ -67,10 +67,10 @@ export default function Vendors() {
         setIsModalOpen(false)
     }
 
-    // Front-end filter & lookup pipeline matching your exact CSS selectors
+    // Fix: Safely accessing properties using optional chaining to prevent crashes
     const filteredVendors = vendors.filter(vendor => {
-        const matchesSearch = vendor.companyName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                              vendor.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesSearch = (vendor.companyName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+                              (vendor.contactPerson?.toLowerCase() || '').includes(searchTerm.toLowerCase())
         
         // Maps backend 'Active' flag to the tab filtering states
         const matchesStatus = filterStatus === 'All' || vendor.complianceStatus === filterStatus
@@ -146,7 +146,7 @@ export default function Vendors() {
                                         <td>{vendor.taxId}</td>
                                         <td>
                                             {/* Status mapping automatically evaluates background colors via app.css templates */}
-                                            <span className={`status-badge status-${vendor.complianceStatus.toLowerCase().replace(" ", "-")}`}>
+                                            <span className={`status-badge status-${vendor.complianceStatus?.toLowerCase().replace(" ", "-") || 'pending'}`}>
                                                 {vendor.complianceStatus}
                                             </span>
                                         </td>

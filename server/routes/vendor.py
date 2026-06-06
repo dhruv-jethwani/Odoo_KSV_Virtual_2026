@@ -14,7 +14,6 @@ def generate_temp_password(length=8):
 def add_vendor():
     # In production, you would protect this with the @role_required decorator
     # to ensure only Officers/Admins can hit this route.
-    
     data = request.get_json()
     
     # 1. Create the User Login Account for the Vendor
@@ -28,7 +27,8 @@ def add_vendor():
         email=data.get('email'),
         country=data.get('country'),
         phoneno=data.get('phone'),
-        role='Vendor'
+        role='Vendor',
+        approval_status='Approved' # Ensure added vendors are auto-approved
     )
     new_user.set_password(temp_password)
     db.session.add(new_user)
@@ -46,14 +46,14 @@ def add_vendor():
     db.session.commit()
 
     # Note: In a real app, you would email the 'username' and 'temp_password' to the vendor here.
-    
     return jsonify({
         "message": "Vendor added successfully",
         "vendor": new_vendor.to_dict(),
         "generated_credentials": {"username": username, "password": temp_password} 
     }), 201
 
-@vendor_bp.route('/', methods=['GET'])
+# Fix: Added strict_slashes=False so Axios calls to /api/vendor or /api/vendor/ both work
+@vendor_bp.route('/', methods=['GET'], strict_slashes=False)
 def get_vendors():
     # Fetch all vendors from the database
     all_vendors = Vendor.query.all()
