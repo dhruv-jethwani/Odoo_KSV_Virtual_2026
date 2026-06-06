@@ -6,10 +6,10 @@ import '../../App.css'
 const registerSchema = z.object({
 	firstName: z.string().min(3, 'First name must be at least 3 characters long'),
 	lastName: z.string().min(1, 'Last name is required'),
-	username: z.string().min(3, 'Username must be at least 3 characters'), // Replaced additionalInformation with username
+	username: z.string().min(3, 'Username must be at least 3 characters'),
 	email: z.string().email('Please enter a valid email address'),
 	phone: z.string().min(7, 'Phone number is required'),
-	role: z.enum(['Admin', 'Officer'], {
+	role: z.enum(['Vendor', 'Procurement Officer', 'Manager', 'Admin'], {
 		required_error: 'Please select a role',
 	}),
 	country: z.string().min(2, 'Country is required'),
@@ -34,7 +34,7 @@ const initialForm = {
 const Toast = ({ message, type, onClose }) => {
 	useEffect(() => {
 		if (message) {
-			const timer = setTimeout(() => onClose(), 3000)
+			const timer = setTimeout(() => onClose(), 4000)
 			return () => clearTimeout(timer)
 		}
 	}, [message, onClose])
@@ -103,7 +103,7 @@ function Register() {
 			showToast(response.data.message, 'success')
 			setForm(initialForm)
 			setShowPassword(false)
-			setTimeout(() => { window.location.hash = '#login' }, 2000)
+			setTimeout(() => { window.location.hash = '#login' }, 3500)
 		} catch (error) {
 			const errorMsg = error.response?.data?.error || 'Registration failed'
 			showToast(errorMsg, 'error')
@@ -202,8 +202,9 @@ function Register() {
 								style={errors.role ? { borderColor: '#dc2626' } : {}}
 							>
 								<option value="">Select a role</option>
+								<option value="Procurement Officer">Procurement Officer</option>
+								<option value="Manager">Manager</option>
 								<option value="Admin">Admin</option>
-								<option value="Officer">Officer</option>
 							</select>
 							{errors.role ? <small>{errors.role}</small> : null}
 						</label>

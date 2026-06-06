@@ -11,8 +11,11 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     country = db.Column(db.String(255), nullable=False)
-    phoneno = db.Column(db.String(20)) # Changed to String to allow leading zeros/formatting
-    role = db.Column(db.String(20), nullable=False, default='Officer') # Added Role
+    phoneno = db.Column(db.String(20))
+    role = db.Column(db.String(30), nullable=False)
+    
+    # Establish relationship to Vendor profile
+    vendor_profile = db.relationship('Vendor', backref='user_account', uselist=False)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -27,7 +30,26 @@ class User(db.Model):
             "lastName": self.last_name,
             "username": self.username,
             "email": self.email,
-            "country": self.country,
-            "phone": self.phoneno,
             "role": self.role
+        }
+
+class Vendor(db.Model):
+    __tablename__ = 'vendors'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False) # Links to login
+    company_name = db.Column(db.String(150), nullable=False)
+    contact_person = db.Column(db.String(100), nullable=False)
+    tax_id = db.Column(db.String(50), unique=True, nullable=False)
+    compliance_status = db.Column(db.String(50), default='Pending Review')
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "companyName": self.company_name,
+            "contactPerson": self.contact_person,
+            "taxId": self.tax_id,
+            "complianceStatus": self.compliance_status,
+            "email": self.user_account.email, # Pulls from connected user table
+            "phone": self.user_account.phoneno
         }

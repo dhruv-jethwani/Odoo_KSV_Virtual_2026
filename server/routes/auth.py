@@ -10,14 +10,13 @@ from . import auth_bp
 def register():
     data = request.get_json()
 
-    # Extract exact keys sent by frontend
     first_name = data.get('firstName')
     last_name = data.get('lastName')
-    username = data.get('username') 
+    username = data.get('username')
     email = data.get('email')
     password = data.get('password')
     country = data.get('country')
-    phone = data.get('phone') 
+    phone = data.get('phone')
     role = data.get('role')
 
     if not all([first_name, last_name, username, email, password, country, role]):
@@ -29,7 +28,9 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "Email already exists"}), 409
 
-    # Create new user
+    # Vendors start as 'Pending', internal staff start as 'Approved' for demo ease
+    status = 'Pending' if role == 'Vendor' else 'Approved'
+
     new_user = User(
         first_name=first_name,
         last_name=last_name,
@@ -37,7 +38,8 @@ def register():
         email=email,
         country=country,
         phoneno=phone,
-        role=role
+        role=role,
+        approval_status=status
     )
     new_user.set_password(password)
 
@@ -45,7 +47,7 @@ def register():
     db.session.commit()
 
     return jsonify({
-        "message": "Registration successful!", 
+        "message": "Registration successful! " + ("Your account is awaiting review." if role == 'Vendor' else ""), 
         "user": new_user.to_dict()
     }), 201
 
@@ -63,6 +65,10 @@ def login():
 
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid username or password"}), 401
+
+    # Block rejected users immediately
+    if user.approval_status == 'Rejected':
+        return jsonify({"error": "Your registration request was rejected by administration."}), 403
 
     token_expiration = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
     token = jwt.encode({
@@ -95,3 +101,20 @@ def get_current_user():
         return jsonify({"error": "Token has expired"}), 401
     except jwt.InvalidTokenError:
         return jsonify({"error": "Invalid token"}), 401
+
+# Endpoint to let Managers/Officers approve pending vendors
+@auth_bp.route('/vendors/<int:user_id>/status', methods=['PATCH'])
+def update_vendor_status(user_id):
+    data = request.get_json()
+    new_status = data.get('status') # 'Approved' or 'Rejected'
+
+    if new_status not in ['Approved', 'Rejected']:
+        return jsonify({"error": "Invalid status value"}), 400
+
+    user = User.query.get(user_id)
+    if not user or user.role != 'Vendor':
+        return jsonify({"error": "Vendor record not found"}), 404
+
+    user.approval_status = new_status
+    db.session.commit()
+    return jsonify({"message": f"Vendor status successfully updated to {new_status}."}), 200
