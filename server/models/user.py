@@ -5,13 +5,10 @@ class User(db.Model):
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
-    full_name = db.Column(db.String(100), nullable=False)
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    phone = db.Column(db.String(30), nullable=True)
-    role = db.Column(db.String(20), nullable=True)
-    country = db.Column(db.String(100), nullable=True)
-    additional_information = db.Column(db.String(100), nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
     country = db.Column(db.String(255), nullable=False)
     phoneno = db.Column(db.Integer)
@@ -25,7 +22,10 @@ class User(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "fullName": self.full_name,
+            "firstName": self.first_name,
+            "lastName": self.last_name,
             "username": self.username,
-            "email": self.email
+            "email": self.email,
+            "country": self.country,
+            "phoneno": self.phoneno
         }
