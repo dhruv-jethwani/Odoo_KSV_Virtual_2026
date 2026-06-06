@@ -8,6 +8,7 @@ from routes.bid import bid_bp
 from routes.rfq import rfq_bp
 from routes.approval import approval_bp
 from routes.po import po_bp
+from routes.invoice import invoice_bp
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -26,6 +27,7 @@ app.register_blueprint(rfq_bp, url_prefix='/api/rfq')
 app.register_blueprint(bid_bp, url_prefix='/api/bid')
 app.register_blueprint(approval_bp, url_prefix='/api/approval')
 app.register_blueprint(po_bp, url_prefix='/api/po')
+app.register_blueprint(invoice_bp, url_prefix='/api/invoice')
 
 with app.app_context():
     db.create_all()

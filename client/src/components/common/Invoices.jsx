@@ -1,32 +1,50 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 
 export default function Invoices() {
     const [view, setView] = useState('list')
     const [searchTerm, setSearchTerm] = useState('')
+    const [invoices, setInvoices] = useState([])
     const [selectedInvoice, setSelectedInvoice] = useState(null)
+    const [isProcessing, setIsProcessing] = useState(false)
 
-    // Mock Data for Invoices
-    const [invoices] = useState([
-        { 
-            id: 'INV-8832', poRef: 'PO-2029', vendor: 'Vendor Infra Sapphire', 
-            date: '16 May 2026', dueDate: '15 June 2026', amount: '$15,400.00', status: 'Pending Payment',
-            items: [
-                { desc: 'Office Chair Mesh', qty: 50, rate: 150, tax: 10, amount: 8250 },
-                { desc: 'Executive Desk', qty: 10, rate: 450, tax: 10, amount: 4950 },
-                { desc: 'Filing Cabinet', qty: 5, rate: 400, tax: 10, amount: 2200 }
-            ]
+    // Fetch live Invoices from backend
+    const fetchInvoices = async () => {
+        try {
+            const response = await axios.get('http://127.0.0.1:5000/api/invoice/')
+            setInvoices(response.data)
+        } catch (error) {
+            console.error("Error fetching invoices:", error)
         }
-    ])
+    }
+
+    useEffect(() => {
+        fetchInvoices()
+    }, [])
 
     const handleViewInvoice = (inv) => {
         setSelectedInvoice(inv)
         setView('detail')
     }
 
+    const handleMarkAsPaid = async () => {
+        setIsProcessing(true)
+        try {
+            const response = await axios.patch(`http://127.0.0.1:5000/api/invoice/${selectedInvoice.raw_id}/pay`)
+            alert(response.data.message)
+            fetchInvoices() // Refresh the list
+            setView('list')
+        } catch (error) {
+            alert(error.response?.data?.error || "Failed to mark as paid")
+        } finally {
+            setIsProcessing(false)
+        }
+    }
+
     if (view === 'list') {
         const filteredInvoices = invoices.filter(inv => 
-            inv.vendor.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            inv.id.toLowerCase().includes(searchTerm.toLowerCase())
+            (inv.vendor?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (inv.id?.toLowerCase() || '').includes(searchTerm.toLowerCase())
         )
 
         return (
@@ -72,12 +90,19 @@ export default function Invoices() {
                                         <td>{inv.vendor}</td>
                                         <td>{inv.date}</td>
                                         <td><strong>{inv.amount}</strong></td>
-                                        <td><span className="status-badge status-pending">{inv.status}</span></td>
+                                        <td>
+                                            <span className={`status-badge status-${inv.status === 'Paid' ? 'completed' : 'pending'}`}>
+                                                {inv.status}
+                                            </span>
+                                        </td>
                                         <td>
                                             <button className="action-btn text-blue" onClick={() => handleViewInvoice(inv)}>View</button>
                                         </td>
                                     </tr>
                                 ))}
+                                {filteredInvoices.length === 0 && (
+                                    <tr><td colSpan="7" className="empty-state">No invoices have been generated yet. Generate them from issued Purchase Orders.</td></tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -95,9 +120,13 @@ export default function Invoices() {
                 </div>
                 <div className="action-group">
                     <button className="btn-secondary" onClick={() => setView('list')}>← Back</button>
-                    <button className="btn-secondary">⬇️ Download PDF</button>
+                    <button className="btn-secondary" onClick={() => window.print()}>🖨️ Print / Download PDF</button>
                     <button className="btn-secondary">✉️ Send Email</button>
-                    <button className="btn-primary">Mark as Paid</button>
+                    {selectedInvoice.status !== 'Paid' && (
+                        <button className="btn-primary" onClick={handleMarkAsPaid} disabled={isProcessing}>
+                            {isProcessing ? "Processing..." : "Mark as Paid"}
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -105,14 +134,14 @@ export default function Invoices() {
                 <div className="document-header">
                     <div className="doc-branding">
                         <h2>{selectedInvoice?.vendor}</h2>
-                        <p>Supplier Address Line 1<br/>Supplier City, Country</p>
+                        <p>Registered Vendor Profile<br/>Verified Account Network</p>
                     </div>
                     <div className="doc-meta">
                         <h1 className="doc-title text-blue">TAX INVOICE</h1>
                         <div className="doc-meta-grid">
                             <span>Invoice No:</span> <strong>{selectedInvoice?.id}</strong>
                             <span>Date:</span> <strong>{selectedInvoice?.date}</strong>
-                            <span>Due Date:</span> <strong className="text-red">{selectedInvoice?.dueDate}</strong>
+                            <span>Due Date:</span> <strong className={selectedInvoice?.status === 'Paid' ? 'text-green' : 'text-red'}>{selectedInvoice?.dueDate}</strong>
                         </div>
                     </div>
                 </div>
@@ -143,7 +172,7 @@ export default function Invoices() {
                                     <td className="text-center">{item.qty}</td>
                                     <td className="text-right">{item.rate.toFixed(2)}</td>
                                     <td className="text-right">{item.tax}%</td>
-                                    <td className="text-right font-bold">{item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td className="text-right font-bold">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -157,7 +186,7 @@ export default function Invoices() {
                     </div>
                     <div className="doc-totals">
                         <div className="total-row">
-                            <span>Amount Due</span>
+                            <span>{selectedInvoice?.status === 'Paid' ? 'Amount Paid' : 'Amount Due'}</span>
                             <h2 className="text-blue">{selectedInvoice?.amount}</h2>
                         </div>
                     </div>

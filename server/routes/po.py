@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import request, jsonify
 from models import db
 from models.po import PurchaseOrder
 from models.invoice import Invoice
