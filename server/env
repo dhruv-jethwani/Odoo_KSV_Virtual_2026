@@ -1,0 +1,2 @@
+DATABASE_URL="mysql+pymysql://Pwk8w5AKWaQzwZP.root:2XspcUfuh1lysUup@gateway01.us-west-2.prod.aws.tidbcloud.com:4000/odoo?ssl_verify_cert=true&ssl_verify_identity=true"
+JWT_SECRET="ufv3g}@Y<Fsc,PCq"

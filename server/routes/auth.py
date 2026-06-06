@@ -10,16 +10,20 @@ from . import auth_bp
 def register():
     data = request.get_json()
 
-    first_name = data.get('firstName')
-    last_name = data.get('lastName')
+    full_name = data.get('fullName')
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
     country = data.get('country')
     phoneno = data.get('phoneno')
 
-    if not all([first_name, last_name, username, email, password, country]):
+    if not all([full_name, username, email, password]):
         return jsonify({"error": "Missing required fields"}), 400
+
+    if additional_information and len(additional_information) > 100:
+        return jsonify({"error": "Additional Information must be 100 characters or less"}), 400
+
+    username = email
 
     if User.query.filter_by(username=username).first():
         return jsonify({"error": "Username already exists"}), 409
@@ -27,14 +31,7 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "Email already exists"}), 409
 
-    new_user = User(
-        first_name=first_name,
-        last_name=last_name,
-        username=username,
-        email=email,
-        country=country,
-        phoneno=phoneno
-    )
+    new_user = User(full_name=full_name, username=username, email=email)
     new_user.set_password(password)
 
     db.session.add(new_user)
@@ -49,13 +46,13 @@ def register():
 def login():
     data = request.get_json()
 
-    username = data.get('username')
+    username = data.get('username', '').strip().lower()
     password = data.get('password')
 
     if not all([username, password]):
         return jsonify({"error": "Missing username or password"}), 400
 
-    user = User.query.filter_by(username=username).first()
+    user = User.query.filter((User.username == username) | (User.email == username)).first()
 
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid username or password"}), 401
