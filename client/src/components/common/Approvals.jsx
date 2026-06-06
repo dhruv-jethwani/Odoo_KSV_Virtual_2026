@@ -1,27 +1,57 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 
 export default function Approvals() {
     const [view, setView] = useState('list') // 'list' or 'detail'
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedApproval, setSelectedApproval] = useState(null)
+    const [approvals, setApprovals] = useState([])
+    const [remarks, setRemarks] = useState('')
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Mock data for pending approvals
-    const [approvals, setApprovals] = useState([
-        { id: 'APV-901', rfq: 'RFQ-1042', title: 'Office Furniture Q2', vendor: 'Vendor Infra Sapphire', amount: '$15,400', date: '12 May 2026', status: 'Pending' },
-        { id: 'APV-902', rfq: 'RFQ-1044', title: 'IT Servers', vendor: 'Tech Supplies Co.', amount: '$42,000', date: '14 May 2026', status: 'Pending' },
-        { id: 'APV-899', rfq: 'RFQ-1041', title: 'Stationery Annual', vendor: 'Stationery Hub', amount: '$850', date: '02 May 2026', status: 'Approved' },
-    ])
+    // Fetch live pending approvals from backend
+    const fetchApprovals = async () => {
+        try {
+            const response = await axios.get('http://127.0.0.1:5000/api/approval/')
+            setApprovals(response.data)
+        } catch (error) {
+            console.error("Error fetching approvals:", error)
+        }
+    }
+
+    useEffect(() => {
+        fetchApprovals()
+    }, [])
 
     const handleSelectApproval = (item) => {
         setSelectedApproval(item)
+        setRemarks('') // Reset remarks on new selection
         setView('detail')
     }
 
-    const handleAction = (e, actionType) => {
+    const handleAction = async (e, actionType) => {
         e.preventDefault()
-        // Update status in a real app, here we just return to list
-        alert(`Quotation ${actionType} successfully!`)
-        setView('list')
+        
+        if (actionType === 'Rejected' && !remarks.trim()) {
+            alert('Remarks are required to reject a quotation.')
+            return
+        }
+
+        setIsSubmitting(true)
+
+        try {
+            const response = await axios.post(`http://127.0.0.1:5000/api/approval/${selectedApproval.bid_id}/action`, {
+                action: actionType,
+                remarks: remarks
+            })
+            alert(response.data.message)
+            fetchApprovals() // Refresh the list
+            setView('list')
+        } catch (error) {
+            alert(error.response?.data?.error || "Failed to process approval")
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     // ==========================================
@@ -29,8 +59,8 @@ export default function Approvals() {
     // ==========================================
     if (view === 'list') {
         const filteredApprovals = approvals.filter(item => 
-            item.vendor.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            item.rfq.toLowerCase().includes(searchTerm.toLowerCase())
+            (item.vendor?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (item.rfq?.toLowerCase() || '').includes(searchTerm.toLowerCase())
         )
 
         return (
@@ -64,6 +94,7 @@ export default function Approvals() {
                                 <tr>
                                     <th>Approval ID</th>
                                     <th>RFQ Ref</th>
+                                    <th>Title</th>
                                     <th>Vendor</th>
                                     <th>Amount</th>
                                     <th>Submission Date</th>
@@ -76,6 +107,7 @@ export default function Approvals() {
                                     <tr key={index}>
                                         <td><strong>{item.id}</strong></td>
                                         <td>{item.rfq}</td>
+                                        <td>{item.title}</td>
                                         <td>{item.vendor}</td>
                                         <td><strong>{item.amount}</strong></td>
                                         <td>{item.date}</td>
@@ -94,6 +126,9 @@ export default function Approvals() {
                                         </td>
                                     </tr>
                                 ))}
+                                {filteredApprovals.length === 0 && (
+                                    <tr><td colSpan="8" className="empty-state">No pending approvals require your attention.</td></tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -155,17 +190,9 @@ export default function Approvals() {
                                 <span>Total Amount</span>
                                 <strong className="text-blue">{selectedApproval?.amount}</strong>
                             </div>
-                            <div className="summary-item">
-                                <span>Delivery Timeline</span>
-                                <strong>15 Days</strong>
-                            </div>
-                            <div className="summary-item">
-                                <span>Payment Terms</span>
-                                <strong>Net 30</strong>
-                            </div>
                             <div className="summary-item full-width">
-                                <span>Vendor Remarks</span>
-                                <p className="summary-text">Prices are valid for 30 days. Delivery includes assembly at the site.</p>
+                                <span>Action Details</span>
+                                <p className="summary-text">Approving this quotation will automatically close the target RFQ, reject competing bids, and generate a Purchase Order.</p>
                             </div>
                         </div>
                     </div>
@@ -179,7 +206,8 @@ export default function Approvals() {
                                 <textarea 
                                     rows="4" 
                                     placeholder="Enter your remarks here (Required for rejection)..."
-                                    required
+                                    value={remarks}
+                                    onChange={(e) => setRemarks(e.target.value)}
                                 ></textarea>
                             </label>
                             
@@ -187,12 +215,13 @@ export default function Approvals() {
                                 <button 
                                     type="button" 
                                     className="btn-reject w-100"
+                                    disabled={isSubmitting}
                                     onClick={(e) => handleAction(e, 'Rejected')}
                                 >
                                     Reject
                                 </button>
-                                <button type="submit" className="btn-approve w-100">
-                                    Approve & Generate PO
+                                <button type="submit" className="btn-approve w-100" disabled={isSubmitting}>
+                                    {isSubmitting ? "Processing..." : "Approve & Generate PO"}
                                 </button>
                             </div>
                         </form>
