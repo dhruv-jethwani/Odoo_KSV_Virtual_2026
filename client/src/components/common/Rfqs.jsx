@@ -1,17 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 
 export default function Rfqs() {
     const [view, setView] = useState('list') // Toggle between 'list' and 'create'
     const [searchTerm, setSearchTerm] = useState('')
+    const [rfqs, setRfqs] = useState([]) // Start empty, will fetch from DB
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Mock data for existing RFQs
-    const [rfqs, setRfqs] = useState([
-        { id: 'RFQ-1042', title: 'Office Furniture Procurement Q2', deadline: '15 June 2026', vendors: 3, status: 'Active' },
-        { id: 'RFQ-1043', title: 'IT Infrastructure - Server Racks', deadline: '20 June 2026', vendors: 2, status: 'Active' },
-        { id: 'RFQ-1041', title: 'Annual Stationery Supplies', deadline: '01 May 2026', vendors: 5, status: 'Closed' },
-    ])
-
-    // Mock Form State for New RFQ
+    // Form State for New RFQ
     const [newRfq, setNewRfq] = useState({
         title: '',
         category: '',
@@ -21,24 +17,44 @@ export default function Rfqs() {
         quantity: ''
     })
 
-    const handleCreateRfq = (e) => {
-        e.preventDefault()
-        // Add the new RFQ to the list and return to list view
-        const rfq = {
-            id: `RFQ-${Math.floor(1000 + Math.random() * 9000)}`,
-            title: newRfq.title || 'New RFQ',
-            deadline: newRfq.deadline || 'TBD',
-            vendors: 0,
-            status: 'Draft'
+    // Fetch live RFQs from backend
+    const fetchRfqs = async () => {
+        try {
+            const response = await axios.get('http://127.0.0.1:5000/api/rfq/')
+            setRfqs(response.data)
+        } catch (error) {
+            console.error("Error fetching RFQs:", error)
         }
-        setRfqs([rfq, ...rfqs])
-        setView('list')
-        setNewRfq({ title: '', category: '', deadline: '', description: '', itemName: '', quantity: '' })
+    }
+
+    // Run on component mount
+    useEffect(() => {
+        fetchRfqs()
+    }, [])
+
+    const handleCreateRfq = async (e) => {
+        e.preventDefault()
+        setIsSubmitting(true)
+
+        try {
+            // Push to backend DB
+            await axios.post('http://127.0.0.1:5000/api/rfq/add', newRfq)
+            
+            // Refresh list and reset view
+            fetchRfqs()
+            setView('list')
+            setNewRfq({ title: '', category: '', deadline: '', description: '', itemName: '', quantity: '' })
+        } catch (error) {
+            alert(error.response?.data?.error || "Failed to create RFQ")
+            console.error(error)
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     const filteredRfqs = rfqs.filter(rfq => 
-        rfq.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        rfq.id.toLowerCase().includes(searchTerm.toLowerCase())
+        (rfq.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+        (rfq.id?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     )
 
     // View: List of RFQs
@@ -91,7 +107,8 @@ export default function Rfqs() {
                                         <td>{rfq.deadline}</td>
                                         <td>{rfq.vendors} Vendors</td>
                                         <td>
-                                            <span className={`status-badge status-${rfq.status.toLowerCase()}`}>
+                                            {/* UI Maps 'Open' to Active styling, otherwise maps directly */}
+                                            <span className={`status-badge status-${rfq.status === 'Open' ? 'active' : rfq.status.toLowerCase()}`}>
                                                 {rfq.status}
                                             </span>
                                         </td>
@@ -157,11 +174,11 @@ export default function Rfqs() {
                         <div className="form-grid">
                             <label className="input-group">
                                 <span>Item Name / Description</span>
-                                <input type="text" placeholder="e.g., Ergonomic Mesh Office Chair" value={newRfq.itemName} onChange={e => setNewRfq({...newRfq, itemName: e.target.value})} />
+                                <input type="text" required placeholder="e.g., Ergonomic Mesh Office Chair" value={newRfq.itemName} onChange={e => setNewRfq({...newRfq, itemName: e.target.value})} />
                             </label>
                             <label className="input-group">
                                 <span>Quantity Required</span>
-                                <input type="number" min="1" placeholder="e.g., 50" value={newRfq.quantity} onChange={e => setNewRfq({...newRfq, quantity: e.target.value})} />
+                                <input type="number" min="1" required placeholder="e.g., 50" value={newRfq.quantity} onChange={e => setNewRfq({...newRfq, quantity: e.target.value})} />
                             </label>
                         </div>
                         <label className="input-group full-width">
@@ -171,8 +188,10 @@ export default function Rfqs() {
                     </div>
 
                     <div className="form-actions">
-                        <button type="button" className="btn-secondary" onClick={() => setView('list')}>Cancel</button>
-                        <button type="submit" className="btn-primary">Generate RFQ & Invite Vendors</button>
+                        <button type="button" className="btn-secondary" onClick={() => setView('list')} disabled={isSubmitting}>Cancel</button>
+                        <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                            {isSubmitting ? "Generating..." : "Generate RFQ & Invite Vendors"}
+                        </button>
                     </div>
                 </form>
             </section>
