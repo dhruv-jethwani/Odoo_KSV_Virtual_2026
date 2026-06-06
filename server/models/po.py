@@ -19,12 +19,26 @@ class PurchaseOrder(db.Model):
     bid = db.relationship('Bid', backref='purchase_order', uselist=False)
 
     def to_dict(self):
+        # Format the items for the frontend document table
+        items = []
+        if self.rfq:
+            qty = self.rfq.quantity or 1
+            items.append({
+                "desc": self.rfq.item_name or self.rfq.title,
+                "qty": qty,
+                "rate": self.amount / qty,
+                "tax": 0, # Assuming tax inclusive for demo simplicity
+                "amount": self.amount
+            })
+
         return {
             "id": f"PO-{2000 + self.id}",
             "raw_id": self.id,
             "rfq": f"RFQ-{1000 + self.rfq_id}",
             "vendor": self.vendor.username if self.vendor else "Unknown",
             "amount": f"${self.amount:,.2f}",
+            "raw_amount": self.amount,
             "status": self.status,
-            "date": self.created_at.strftime('%d %b %Y') if self.created_at else None
+            "date": self.created_at.strftime('%d %b %Y') if self.created_at else None,
+            "items": items
         }

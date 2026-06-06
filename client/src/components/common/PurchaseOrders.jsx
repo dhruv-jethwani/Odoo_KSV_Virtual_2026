@@ -1,36 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 
 export default function PurchaseOrders() {
     const [view, setView] = useState('list') // 'list' or 'detail'
     const [searchTerm, setSearchTerm] = useState('')
+    const [purchaseOrders, setPurchaseOrders] = useState([])
     const [selectedPO, setSelectedPO] = useState(null)
+    const [isGenerating, setIsGenerating] = useState(false)
 
-    // Mock Data for POs
-    const [purchaseOrders] = useState([
-        { 
-            id: 'PO-2029', rfq: 'RFQ-1042', vendor: 'Vendor Infra Sapphire', 
-            date: '15 May 2026', amount: '$15,400.00', status: 'Issued',
-            items: [
-                { desc: 'Office Chair Mesh', qty: 50, rate: 150, tax: 10, amount: 8250 },
-                { desc: 'Executive Desk', qty: 10, rate: 450, tax: 10, amount: 4950 },
-                { desc: 'Filing Cabinet', qty: 5, rate: 400, tax: 10, amount: 2200 }
-            ]
-        },
-        { 
-            id: 'PO-2030', rfq: 'RFQ-1044', vendor: 'Tech Supplies Co.', 
-            date: '16 May 2026', amount: '$42,000.00', status: 'Invoiced',
-            items: []
+    // Fetch live POs from backend
+    const fetchPOs = async () => {
+        try {
+            const response = await axios.get('http://127.0.0.1:5000/api/po/')
+            setPurchaseOrders(response.data)
+        } catch (error) {
+            console.error("Error fetching POs:", error)
         }
-    ])
+    }
+
+    useEffect(() => {
+        fetchPOs()
+    }, [])
 
     const handleViewPO = (po) => {
         setSelectedPO(po)
         setView('detail')
     }
 
-    const handleGenerateInvoice = () => {
-        alert(`Invoice auto-generated for ${selectedPO.id}! Check the Invoices tab.`)
-        setView('list')
+    const handleGenerateInvoice = async () => {
+        setIsGenerating(true)
+        try {
+            const response = await axios.post(`http://127.0.0.1:5000/api/po/${selectedPO.raw_id}/invoice`)
+            alert(response.data.message)
+            fetchPOs() // Refresh the list
+            setView('list')
+        } catch (error) {
+            alert(error.response?.data?.error || "Failed to generate invoice")
+        } finally {
+            setIsGenerating(false)
+        }
     }
 
     // ==========================================
@@ -38,8 +46,8 @@ export default function PurchaseOrders() {
     // ==========================================
     if (view === 'list') {
         const filteredPOs = purchaseOrders.filter(po => 
-            po.vendor.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            po.id.toLowerCase().includes(searchTerm.toLowerCase())
+            (po.vendor?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+            (po.id?.toLowerCase() || '').includes(searchTerm.toLowerCase())
         )
 
         return (
@@ -85,12 +93,19 @@ export default function PurchaseOrders() {
                                         <td>{po.vendor}</td>
                                         <td>{po.date}</td>
                                         <td><strong>{po.amount}</strong></td>
-                                        <td><span className={`status-badge status-${po.status.toLowerCase()}`}>{po.status}</span></td>
+                                        <td>
+                                            <span className={`status-badge status-${po.status.toLowerCase()}`}>
+                                                {po.status}
+                                            </span>
+                                        </td>
                                         <td>
                                             <button className="action-btn text-blue" onClick={() => handleViewPO(po)}>View Document</button>
                                         </td>
                                     </tr>
                                 ))}
+                                {filteredPOs.length === 0 && (
+                                    <tr><td colSpan="7" className="empty-state">No Purchase Orders available. Approve a quotation to generate a PO.</td></tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -111,10 +126,11 @@ export default function PurchaseOrders() {
                 </div>
                 <div className="action-group">
                     <button className="btn-secondary" onClick={() => setView('list')}>← Back</button>
-                    <button className="btn-secondary">🖨️ Print</button>
-                    <button className="btn-secondary">✉️ Email PO</button>
+                    <button className="btn-secondary" onClick={() => window.print()}>🖨️ Print</button>
                     {selectedPO.status === 'Issued' && (
-                        <button className="btn-primary" onClick={handleGenerateInvoice}>Generate Invoice</button>
+                        <button className="btn-primary" onClick={handleGenerateInvoice} disabled={isGenerating}>
+                            {isGenerating ? "Generating..." : "Generate Invoice"}
+                        </button>
                     )}
                 </div>
             </header>
@@ -139,7 +155,7 @@ export default function PurchaseOrders() {
                     <div className="party-box">
                         <h3>Vendor / Supplier</h3>
                         <strong>{selectedPO?.vendor}</strong>
-                        <p>Vendor ID: V-001<br/>contact@supplier.com<br/>+91 98765 43210</p>
+                        <p>Vendor Profile ID: V-{String(selectedPO?.raw_id).padStart(3, '0')}<br/>Verified Account</p>
                     </div>
                     <div className="party-box">
                         <h3>Shipping Details</h3>
@@ -166,7 +182,7 @@ export default function PurchaseOrders() {
                                     <td className="text-center">{item.qty}</td>
                                     <td className="text-right">{item.rate.toFixed(2)}</td>
                                     <td className="text-right">{item.tax}%</td>
-                                    <td className="text-right font-bold">{item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td className="text-right font-bold">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 </tr>
                             ))}
                         </tbody>
