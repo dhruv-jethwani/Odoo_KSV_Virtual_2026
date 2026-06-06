@@ -2367,3 +2367,179 @@ tr:hover td {
     width: 24px;
   }
 }
+
+/* =========================================
+   DASHBOARD REFINEMENTS & AVATAR (SCREEN 3)
+   ========================================= */
+
+/* Top Right User Profile Corner */
+.user-profile-corner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+
+.user-name {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.user-role {
+  color: #64748b;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.user-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+}
+
+.mobile-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 0.9rem;
+}
+
+/* Dashboard Split Layout */
+.split-layout {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* Quick Action Buttons Row */
+.quick-actions-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.btn-outline {
+  flex: 1;
+  min-width: 130px;
+  border: 2px solid #cbd5e1;
+  background: transparent;
+  padding: 12px 20px;
+  border-radius: 14px;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.btn-outline:hover {
+  border-color: #0f172a;
+  background: #f8fafc;
+  color: #0f172a;
+  transform: translateY(-2px);
+}
+
+/* Trends Graphic Layout */
+.trends-graphic {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+}
+
+.mini-pie-container {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.04);
+}
+
+/* CSS Mock Pie Chart */
+.mock-pie-chart {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #3b82f6 0% 45%,      /* Blue */
+    #22c55e 45% 75%,     /* Green */
+    #eab308 75% 100%     /* Yellow */
+  );
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.pie-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.pie-legend .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+/* Align helper */
+.align-center {
+  align-items: center;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .split-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .user-profile-corner {
+    display: none; /* Hide full profile block on very small screens since avatar is in mobile header */
+  }
+  
+  .quick-actions-row {
+    flex-direction: column;
+  }
+  
+  .mini-pie-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
