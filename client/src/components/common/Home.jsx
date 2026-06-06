@@ -82,19 +82,8 @@ export default function Home() {
                         <h1>Dashboard</h1>
                         <p>Welcome back, {currentUser?.firstName || currentUser?.username}. Here is your Today's Overview.</p>
                     </div>
-                    
-                    {/* User Profile Bubble - Always Top Right */}
-                    <div className="user-profile-corner animate-slide-up">
-                        <div className="user-meta">
-                            <span className="user-name">{currentUser?.firstName} {currentUser?.lastName}</span>
-                            <span className="user-role">{currentUser?.role}</span>
-                        </div>
-                        <div className="user-avatar">
-                            {currentUser?.username?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                    </div>
+
                 </header>
-                
                 {/* Top Dynamic Stats Grid */}
                 <section className="stats-grid">
                     {dashboardStats?.stats?.map((stat, index) => (
