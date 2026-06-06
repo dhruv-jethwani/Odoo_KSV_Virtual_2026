@@ -6,17 +6,13 @@ import '../../App.css'
 const registerSchema = z.object({
 	firstName: z.string().min(3, 'First name must be at least 3 characters long'),
 	lastName: z.string().min(1, 'Last name is required'),
+	username: z.string().min(3, 'Username must be at least 3 characters'), // Replaced additionalInformation with username
 	email: z.string().email('Please enter a valid email address'),
 	phone: z.string().min(7, 'Phone number is required'),
 	role: z.enum(['Admin', 'Officer'], {
 		required_error: 'Please select a role',
 	}),
 	country: z.string().min(2, 'Country is required'),
-	additionalInformation: z
-		.string()
-		.max(100, 'Additional Information must be 100 characters or less')
-		.optional()
-		.or(z.literal('')),
 	password: z
 		.string()
 		.min(8, 'Password must be at least 8 characters long')
@@ -27,15 +23,14 @@ const registerSchema = z.object({
 const initialForm = {
 	firstName: '',
 	lastName: '',
+	username: '',
 	email: '',
 	phone: '',
 	role: '',
 	country: '',
-	additionalInformation: '',
 	password: '',
 }
 
-// Simple Toast component
 const Toast = ({ message, type, onClose }) => {
 	useEffect(() => {
 		if (message) {
@@ -65,7 +60,6 @@ function Register() {
 	const [showPassword, setShowPassword] = useState(false)
 	const [toast, setToast] = useState({ message: '', type: '' })
 	
-	// Dynamic requirement checker state
 	const [reqs, setReqs] = useState({ length: false, upper: false, number: false })
 
 	useEffect(() => {
@@ -118,13 +112,11 @@ function Register() {
 		}
 	}
 
-	// Helper styling for dynamic checklist
 	const getReqStyle = (isValid) => ({
 		color: isValid ? '#10b981' : '', 
 		fontWeight: isValid ? '700' : ''
 	})
 
-	// Calculate password strength progress
 	const reqCount = (reqs.length ? 1 : 0) + (reqs.upper ? 1 : 0) + (reqs.number ? 1 : 0)
 	const progressPercentage = (reqCount / 3) * 100
 	const isPasswordValid = reqCount === 3
@@ -142,17 +134,17 @@ function Register() {
 				<form className="login-form register-form" onSubmit={handleSubmit} noValidate>
 					<div className="register-row">
 						<label className="field">
-							<p align="left">Full name</p>
+							<p align="left">First name</p>
 							<input
 								type="text"
-								name="fullName"
-								value={form.fullName}
+								name="firstName"
+								value={form.firstName}
 								onChange={handleChange}
-								placeholder="Enter your full name"
-								autoComplete="name"
-								style={errors.fullName ? { borderColor: '#dc2626' } : {}}
+								placeholder="Enter your first name"
+								autoComplete="given-name"
+								style={errors.firstName ? { borderColor: '#dc2626' } : {}}
 							/>
-							{errors.fullName ? <small>{errors.fullName}</small> : null}
+							{errors.firstName ? <small>{errors.firstName}</small> : null}
 						</label>
 
 						<label className="field">
@@ -232,20 +224,17 @@ function Register() {
 					</div>
 
 					<label className="field">
-						<p align="left">Additional Information</p>
-						<textarea
-							name="additionalInformation"
-							value={form.additionalInformation}
+						<p align="left">Username</p>
+						<input
+							type="text"
+							name="username"
+							value={form.username}
 							onChange={handleChange}
-							placeholder="Add any additional details"
-							maxLength={100}
-							rows={4}
-							style={errors.additionalInformation ? { borderColor: '#dc2626' } : {}}
+							placeholder="Create a unique username"
+							autoComplete="username"
+							style={errors.username ? { borderColor: '#dc2626' } : {}}
 						/>
-						<div className="field-meta">
-							{errors.additionalInformation ? <small>{errors.additionalInformation}</small> : <span />}
-							<span>{form.additionalInformation.length}/100</span>
-						</div>
+						{errors.username ? <small>{errors.username}</small> : null}
 					</label>
 
 					<label className="field">
@@ -280,7 +269,6 @@ function Register() {
 						</div>
 						{errors.password ? <small>{errors.password}</small> : null}
 						
-						{/* Rainbow Progress Bar */}
 						<div style={{ height: '6px', background: 'rgba(148, 163, 184, 0.2)', borderRadius: '999px', marginTop: '6px', overflow: 'hidden' }}>
 							<div style={{
 								height: '100%',

@@ -11,7 +11,8 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     country = db.Column(db.String(255), nullable=False)
-    phoneno = db.Column(db.Integer)
+    phoneno = db.Column(db.String(20)) # Changed to String to allow leading zeros/formatting
+    role = db.Column(db.String(20), nullable=False, default='Officer') # Added Role
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -27,5 +28,6 @@ class User(db.Model):
             "username": self.username,
             "email": self.email,
             "country": self.country,
-            "phoneno": self.phoneno
+            "phone": self.phoneno,
+            "role": self.role
         }

@@ -10,15 +10,17 @@ from . import auth_bp
 def register():
     data = request.get_json()
 
+    # Extract exact keys sent by frontend
     first_name = data.get('firstName')
     last_name = data.get('lastName')
-    username = data.get('username')
+    username = data.get('username') 
     email = data.get('email')
     password = data.get('password')
     country = data.get('country')
-    phoneno = data.get('phoneno')
+    phone = data.get('phone') 
+    role = data.get('role')
 
-    if not all([first_name, last_name, username, email, password, country]):
+    if not all([first_name, last_name, username, email, password, country, role]):
         return jsonify({"error": "Missing required fields"}), 400
 
     if User.query.filter_by(username=username).first():
@@ -27,13 +29,15 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "Email already exists"}), 409
 
+    # Create new user
     new_user = User(
         first_name=first_name,
         last_name=last_name,
         username=username,
         email=email,
         country=country,
-        phoneno=phoneno
+        phoneno=phone,
+        role=role
     )
     new_user.set_password(password)
 
@@ -60,7 +64,6 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid username or password"}), 401
 
-    # Generate the JWT Token (Keeping it lightweight with just user_id)
     token_expiration = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
     token = jwt.encode({
         'user_id': user.id,
