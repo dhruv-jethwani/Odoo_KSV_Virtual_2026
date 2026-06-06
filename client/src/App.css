@@ -80,6 +80,16 @@
   margin-bottom: 28px;
 }
 
+.login-logo {
+  justify-self: center;
+}
+
+.login-logo img {
+  display: block;
+  height: 88px;
+  width: auto;
+}
+
 .login-badge {
   justify-self: start;
   padding: 8px 12px;
@@ -420,7 +430,7 @@
   overflow: hidden;
   position: relative;
   z-index: 1;
-  padding: clamp(24px, 4vh, 42px);
+  padding: 42px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 32px;
   background: rgba(255, 255, 255, 0.78);
@@ -452,8 +462,8 @@
 
 .landing-copy h1 {
   margin: 0;
-  font-size: clamp(2rem, 6vh, 3.5rem);
-  line-height: 0.94;
+  font-size: clamp(1.8rem, 5vh, 3.2rem);
+  line-height: 1.1;
   letter-spacing: -0.08em;
   color: #0f172a;
 }
@@ -462,38 +472,48 @@
   margin: 0;
   max-width: 60ch;
   color: #526079;
-  font-size: clamp(0.9rem, 2vh, 1.1rem);
+  font-size: clamp(0.95rem, 1.8vh, 1.1rem);
   line-height: 1.65;
 }
 
 .landing-highlights {
-  margin-top: clamp(16px, 4vh, 24px);
+  margin-top: clamp(12px, 3vh, 20px);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(10px, 2vw, 14px);
+  gap: clamp(12px, 2vw, 16px);
 }
 
-.landing-highlights div {
-  padding: clamp(12px, 2vh, 16px) clamp(12px, 2vw, 16px);
-  border-radius: 22px;
-  background: rgba(248, 250, 252, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.16);
+.landing-highlights > div {
+  padding: clamp(14px, 2.5vh, 20px) clamp(16px, 2vw, 24px);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.landing-highlights > div:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.35);
 }
 
 .landing-highlights strong {
   display: block;
-  margin-bottom: clamp(2px, 1vh, 6px);
-  color: #0f172a;
-  font-size: clamp(0.9rem, 2vh, 1.05rem);
+  margin-bottom: clamp(4px, 1vh, 8px);
+  color: #1e293b;
+  font-size: clamp(1.05rem, 2.2vh, 1.25rem);
+  font-weight: 700;
 }
 
 .landing-highlights span {
   color: #64748b;
-  font-size: clamp(0.8rem, 1.5vh, 0.95rem);
+  font-size: clamp(0.9rem, 1.8vh, 1.05rem);
+  line-height: 1.4;
 }
 
 .landing-actions {
-  margin-top: clamp(16px, 4vh, 28px);
+  margin-top: clamp(16px, 3vh, 24px);
   display: flex;
   flex-wrap: wrap;
   gap: clamp(12px, 2vw, 16px);
@@ -578,7 +598,7 @@
   }
 
   .landing-shell {
-    padding: 16px;
+    padding: 12px 16px 40px 16px;
   }
 
   .login-card {
@@ -997,8 +1017,8 @@ tr:hover td {
 .vb-landing {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 40px 48px !important;
+  justify-content: center;
+  padding: clamp(20px, 3vh, 32px) clamp(24px, 4vw, 48px) clamp(32px, 5vh, 56px) !important;
 }
 
 /* --- Header --- */
@@ -1006,7 +1026,7 @@ tr:hover td {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 60px;
+  margin-bottom: clamp(16px, 3vh, 40px);
 }
 
 .vb-logo {
@@ -1063,18 +1083,18 @@ tr:hover td {
 }
 
 .vb-hero h1 {
-  font-size: 4.5rem;
-  margin: 12px 0 20px;
+  font-size: clamp(2.2rem, 5vh, 4.2rem);
+  margin: clamp(8px, 1.5vh, 16px) 0;
 }
 
 .vb-hero p {
-  font-size: 1.25rem;
+  font-size: clamp(1rem, 2vh, 1.15rem);
   max-width: 65ch;
 }
 
 /* --- Feature Cards --- */
 .landing-highlights {
-  margin-top: 60px;
+  margin-top: clamp(16px, 3vh, 40px);
 }
 
 .feature-card {
@@ -1098,7 +1118,7 @@ tr:hover td {
   justify-content: center;
   border-radius: 14px;
   font-size: 1.5rem;
-  margin-bottom: 16px;
+  margin-bottom: clamp(8px, 1.5vh, 16px);
 }
 
 .bg-blue { background: #eff6ff; }
@@ -1129,19 +1149,19 @@ tr:hover td {
 /* --- Mobile Responsiveness --- */
 @media (max-width: 768px) {
   .vb-landing {
-    padding: 30px 20px !important;
+    padding: 20px 20px 32px !important;
   }
   
   .vb-hero h1 {
-    font-size: 2.8rem;
+    font-size: 2.4rem;
   }
   
   .vb-hero p {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
   
   .vb-header {
-    margin-bottom: 40px;
+    margin-bottom: 24px;
   }
   
   .vb-nav-link {

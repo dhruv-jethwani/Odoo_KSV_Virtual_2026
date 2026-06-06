@@ -95,6 +95,9 @@ function Login() {
 			
 			<section className="login-card">
 				<div className="login-hero">
+					<div className="login-logo">
+						<img src="/Logo.PNG" alt="VendorBridge Logo" />
+					</div>
 					<h1>Login</h1>
 					<span>Please enter your credentials to access your account.</span>
 				</div>

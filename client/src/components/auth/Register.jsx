@@ -127,6 +127,9 @@ function Register() {
 
 			<section className="login-card register-card">
 				<div className="login-hero">
+					<div className="login-logo">
+						<img src="/Logo.PNG" alt="VendorBridge Logo" />
+					</div>
 					<h1>Register</h1>
 					<span>Create your account in a few simple steps.</span>
 				</div>
