@@ -2,34 +2,42 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 
 export default function Rfqs() {
-    const [view, setView] = useState('list') // Toggle between 'list' and 'create'
+    const [view, setView] = useState('list') 
     const [searchTerm, setSearchTerm] = useState('')
-    const [rfqs, setRfqs] = useState([]) // Start empty, will fetch from DB
+    const [rfqs, setRfqs] = useState([]) 
+    const [vendors, setVendors] = useState([]) // Store available vendors
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Form State for New RFQ
+    // Quotes Modal State
+    const [quotesModalOpen, setQuotesModalOpen] = useState(false)
+    const [selectedRfqQuotes, setSelectedRfqQuotes] = useState([])
+    const [loadingQuotes, setLoadingQuotes] = useState(false)
+
     const [newRfq, setNewRfq] = useState({
         title: '',
         category: '',
         deadline: '',
         description: '',
         itemName: '',
-        quantity: ''
+        quantity: '',
+        invitedVendors: [] // Array of vendor IDs
     })
 
-    // Fetch live RFQs from backend
-    const fetchRfqs = async () => {
+    const fetchRfqsAndVendors = async () => {
         try {
-            const response = await axios.get('http://127.0.0.1:5000/api/rfq/')
-            setRfqs(response.data)
+            const [rfqRes, vendorRes] = await Promise.all([
+                axios.get('http://127.0.0.1:5000/api/rfq/'),
+                axios.get('http://127.0.0.1:5000/api/vendor/')
+            ])
+            setRfqs(rfqRes.data)
+            setVendors(vendorRes.data.filter(v => v.complianceStatus === 'Active'))
         } catch (error) {
-            console.error("Error fetching RFQs:", error)
+            console.error("Error fetching data:", error)
         }
     }
 
-    // Run on component mount
     useEffect(() => {
-        fetchRfqs()
+        fetchRfqsAndVendors()
     }, [])
 
     const handleCreateRfq = async (e) => {
@@ -37,13 +45,11 @@ export default function Rfqs() {
         setIsSubmitting(true)
 
         try {
-            // Push to backend DB
             await axios.post('http://127.0.0.1:5000/api/rfq/add', newRfq)
-            
-            // Refresh list and reset view
-            fetchRfqs()
+            fetchRfqsAndVendors()
             setView('list')
-            setNewRfq({ title: '', category: '', deadline: '', description: '', itemName: '', quantity: '' })
+            setNewRfq({ title: '', category: '', deadline: '', description: '', itemName: '', quantity: '', invitedVendors: [] })
+            alert('RFQ Created and Vendors Invited successfully!')
         } catch (error) {
             alert(error.response?.data?.error || "Failed to create RFQ")
             console.error(error)
@@ -52,15 +58,38 @@ export default function Rfqs() {
         }
     }
 
+    const handleVendorToggle = (vendorId) => {
+        setNewRfq(prev => {
+            const selected = new Set(prev.invitedVendors)
+            if (selected.has(vendorId)) selected.delete(vendorId)
+            else selected.add(vendorId)
+            return { ...prev, invitedVendors: [...selected] }
+        })
+    }
+
+    const handleViewQuotes = async (rfqId) => {
+        setQuotesModalOpen(true)
+        setLoadingQuotes(true)
+        try {
+            const res = await axios.get('http://127.0.0.1:5000/api/bid/')
+            // Filter quotes that match this specific RFQ
+            const related = res.data.filter(b => b.rfq_id === rfqId)
+            setSelectedRfqQuotes(related)
+        } catch(e) {
+            console.error("Error fetching quotes:", e)
+        } finally {
+            setLoadingQuotes(false)
+        }
+    }
+
     const filteredRfqs = rfqs.filter(rfq => 
         (rfq.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
         (rfq.id?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     )
 
-    // View: List of RFQs
     if (view === 'list') {
         return (
-            <div className="animate-fade-in">
+            <div className="animate-fade-in relative">
                 <header className="dashboard-header flex-between">
                     <div>
                         <h1>Request for Quotations (RFQs)</h1>
@@ -107,13 +136,14 @@ export default function Rfqs() {
                                         <td>{rfq.deadline}</td>
                                         <td>{rfq.vendors} Vendors</td>
                                         <td>
-                                            {/* UI Maps 'Open' to Active styling, otherwise maps directly */}
                                             <span className={`status-badge status-${rfq.status === 'Open' ? 'active' : rfq.status.toLowerCase()}`}>
                                                 {rfq.status}
                                             </span>
                                         </td>
                                         <td>
-                                            <button className="action-btn text-blue">View Quotes</button>
+                                            <button className="action-btn text-blue" onClick={() => handleViewQuotes(rfq.id)}>
+                                                View Quotes
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -124,11 +154,53 @@ export default function Rfqs() {
                         </table>
                     </div>
                 </section>
+
+                {/* VIEW QUOTES MODAL */}
+                {quotesModalOpen && (
+                    <div className="modal-overlay" style={modalOverlayStyle}>
+                        <div className="login-card register-card" style={{ padding: '32px', maxHeight: '80vh', overflowY: 'auto', margin: 0 }}>
+                            <div className="flex-between" style={{ marginBottom: '24px' }}>
+                                <h2>Quotations Received</h2>
+                                <button onClick={() => setQuotesModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+                            </div>
+                            
+                            {loadingQuotes ? (
+                                <p>Loading quotes...</p>
+                            ) : selectedRfqQuotes.length > 0 ? (
+                                <div className="table-wrapper">
+                                    <table className="compact-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr>
+                                                <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Vendor</th>
+                                                <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Amount</th>
+                                                <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Delivery</th>
+                                                <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedRfqQuotes.map((quote, idx) => (
+                                                <tr key={idx}>
+                                                    <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}><strong>{quote.vendor}</strong></td>
+                                                    <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>${quote.amount.toLocaleString()}</td>
+                                                    <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>{quote.delivery}</td>
+                                                    <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>
+                                                        <span className={`status-badge status-${quote.status.toLowerCase()}`}>{quote.status}</span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="empty-state">No quotations have been submitted for this RFQ yet.</div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         )
     }
 
-    // View: Create New RFQ Form
     return (
         <div className="animate-fade-in">
             <header className="dashboard-header flex-between">
@@ -143,7 +215,6 @@ export default function Rfqs() {
 
             <section className="form-container animate-slide-up" style={{ animationDelay: '0.1s' }}>
                 <form onSubmit={handleCreateRfq}>
-                    
                     <div className="form-section">
                         <h3 className="section-title">1. Basic Details</h3>
                         <div className="form-grid">
@@ -154,7 +225,7 @@ export default function Rfqs() {
                             
                             <label className="input-group">
                                 <span>Category</span>
-                                <select value={newRfq.category} onChange={e => setNewRfq({...newRfq, category: e.target.value})}>
+                                <select value={newRfq.category} required onChange={e => setNewRfq({...newRfq, category: e.target.value})}>
                                     <option value="">Select Category</option>
                                     <option value="IT">IT Infrastructure</option>
                                     <option value="Furniture">Furniture</option>
@@ -187,10 +258,30 @@ export default function Rfqs() {
                         </label>
                     </div>
 
+                    {/* NEW SECTION: VENDOR INVITATIONS */}
+                    <div className="form-section">
+                        <h3 className="section-title">3. Invite Vendors</h3>
+                        <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '16px' }}>Select active vendors to send email invitations.</p>
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                            {vendors.map(v => (
+                                <label key={v.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', cursor: 'pointer' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={newRfq.invitedVendors.includes(v.id)}
+                                        onChange={() => handleVendorToggle(v.id)} 
+                                        style={{ width: 'auto' }}
+                                    />
+                                    {v.companyName}
+                                </label>
+                            ))}
+                            {vendors.length === 0 && <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No active vendors available to invite.</span>}
+                        </div>
+                    </div>
+
                     <div className="form-actions">
                         <button type="button" className="btn-secondary" onClick={() => setView('list')} disabled={isSubmitting}>Cancel</button>
                         <button type="submit" className="btn-primary" disabled={isSubmitting}>
-                            {isSubmitting ? "Generating..." : "Generate RFQ & Invite Vendors"}
+                            {isSubmitting ? "Generating & Sending Invites..." : "Generate RFQ & Invite Vendors"}
                         </button>
                     </div>
                 </form>
@@ -198,3 +289,9 @@ export default function Rfqs() {
         </div>
     )
 }
+
+const modalOverlayStyle = {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(4px)',
+    display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+};

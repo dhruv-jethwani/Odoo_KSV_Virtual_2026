@@ -7,8 +7,8 @@ export default function Invoices() {
     const [invoices, setInvoices] = useState([])
     const [selectedInvoice, setSelectedInvoice] = useState(null)
     const [isProcessing, setIsProcessing] = useState(false)
+    const [isEmailing, setIsEmailing] = useState(false)
 
-    // Fetch live Invoices from backend
     const fetchInvoices = async () => {
         try {
             const response = await axios.get('http://127.0.0.1:5000/api/invoice/')
@@ -32,12 +32,24 @@ export default function Invoices() {
         try {
             const response = await axios.patch(`http://127.0.0.1:5000/api/invoice/${selectedInvoice.raw_id}/pay`)
             alert(response.data.message)
-            fetchInvoices() // Refresh the list
+            fetchInvoices() 
             setView('list')
         } catch (error) {
             alert(error.response?.data?.error || "Failed to mark as paid")
         } finally {
             setIsProcessing(false)
+        }
+    }
+
+    const handleSendEmail = async () => {
+        setIsEmailing(true)
+        try {
+            const response = await axios.post(`http://127.0.0.1:5000/api/invoice/${selectedInvoice.raw_id}/email`)
+            alert(response.data.message)
+        } catch (error) {
+            alert(error.response?.data?.error || "Failed to send email. Make sure SMTP variables are set in .env")
+        } finally {
+            setIsEmailing(false)
         }
     }
 
@@ -121,7 +133,9 @@ export default function Invoices() {
                 <div className="action-group">
                     <button className="btn-secondary" onClick={() => setView('list')}>← Back</button>
                     <button className="btn-secondary" onClick={() => window.print()}>🖨️ Print / Download PDF</button>
-                    <button className="btn-secondary">✉️ Send Email</button>
+                    <button className="btn-secondary" onClick={handleSendEmail} disabled={isEmailing}>
+                        {isEmailing ? "Sending..." : "✉️ Send Email"}
+                    </button>
                     {selectedInvoice.status !== 'Paid' && (
                         <button className="btn-primary" onClick={handleMarkAsPaid} disabled={isProcessing}>
                             {isProcessing ? "Processing..." : "Mark as Paid"}
