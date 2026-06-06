@@ -5,8 +5,18 @@ import '../../App.css'
 
 const registerSchema = z.object({
 	fullName: z.string().min(3, 'Full name must be at least 3 characters long'),
-	username: z.string().min(3, 'Username must be at least 3 characters long'),
+	lastName: z.string().min(1, 'Last name is required'),
 	email: z.string().email('Please enter a valid email address'),
+	phone: z.string().min(7, 'Phone number is required'),
+	role: z.enum(['Admin', 'Officer'], {
+		required_error: 'Please select a role',
+	}),
+	country: z.string().min(2, 'Country is required'),
+	additionalInformation: z
+		.string()
+		.max(100, 'Additional Information must be 100 characters or less')
+		.optional()
+		.or(z.literal('')),
 	password: z
 		.string()
 		.min(8, 'Password must be at least 8 characters long')
@@ -16,8 +26,12 @@ const registerSchema = z.object({
 
 const initialForm = {
 	fullName: '',
-	username: '',
+	lastName: '',
 	email: '',
+	phone: '',
+	role: '',
+	country: '',
+	additionalInformation: '',
 	password: '',
 }
 
@@ -142,32 +156,96 @@ function Register() {
 						</label>
 
 						<label className="field">
-							<p align="left">Username</p>
+							<p align="left">Last name</p>
 							<input
 								type="text"
-								name="username"
-								value={form.username}
+								name="lastName"
+								value={form.lastName}
 								onChange={handleChange}
-								placeholder="Enter a username"
-								autoComplete="username"
-								style={errors.username ? { borderColor: '#dc2626' } : {}}
+								placeholder="Enter your last name"
+								autoComplete="family-name"
+								style={errors.lastName ? { borderColor: '#dc2626' } : {}}
 							/>
-							{errors.username ? <small>{errors.username}</small> : null}
+							{errors.lastName ? <small>{errors.lastName}</small> : null}
+						</label>
+					</div>
+
+					<div className="register-row">
+						<label className="field">
+							<p align="left">Email address</p>
+							<input
+								type="email"
+								name="email"
+								value={form.email}
+								onChange={handleChange}
+								placeholder="Enter your email address"
+								autoComplete="email"
+								style={errors.email ? { borderColor: '#dc2626' } : {}}
+							/>
+							{errors.email ? <small>{errors.email}</small> : null}
+						</label>
+
+						<label className="field">
+							<p align="left">Phone number</p>
+							<input
+								type="tel"
+								name="phone"
+								value={form.phone}
+								onChange={handleChange}
+								placeholder="Enter your phone number"
+								autoComplete="tel"
+								style={errors.phone ? { borderColor: '#dc2626' } : {}}
+							/>
+							{errors.phone ? <small>{errors.phone}</small> : null}
+						</label>
+					</div>
+
+					<div className="register-row">
+						<label className="field">
+							<p align="left">Role</p>
+							<select
+								name="role"
+								value={form.role}
+								onChange={handleChange}
+								style={errors.role ? { borderColor: '#dc2626' } : {}}
+							>
+								<option value="">Select a role</option>
+								<option value="Admin">Admin</option>
+								<option value="Officer">Officer</option>
+							</select>
+							{errors.role ? <small>{errors.role}</small> : null}
+						</label>
+
+						<label className="field">
+							<p align="left">Country</p>
+							<input
+								type="text"
+								name="country"
+								value={form.country}
+								onChange={handleChange}
+								placeholder="Enter your country"
+								autoComplete="country-name"
+								style={errors.country ? { borderColor: '#dc2626' } : {}}
+							/>
+							{errors.country ? <small>{errors.country}</small> : null}
 						</label>
 					</div>
 
 					<label className="field">
-						<p align="left">Email address</p>
-						<input
-							type="email"
-							name="email"
-							value={form.email}
+						<p align="left">Additional Information</p>
+						<textarea
+							name="additionalInformation"
+							value={form.additionalInformation}
 							onChange={handleChange}
-							placeholder="Enter your email address"
-							autoComplete="email"
-							style={errors.email ? { borderColor: '#dc2626' } : {}}
+							placeholder="Add any additional details"
+							maxLength={100}
+							rows={4}
+							style={errors.additionalInformation ? { borderColor: '#dc2626' } : {}}
 						/>
-						{errors.email ? <small>{errors.email}</small> : null}
+						<div className="field-meta">
+							{errors.additionalInformation ? <small>{errors.additionalInformation}</small> : <span />}
+							<span>{form.additionalInformation.length}/100</span>
+						</div>
 					</label>
 
 					<label className="field">
