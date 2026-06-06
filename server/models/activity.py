@@ -15,26 +15,11 @@ class ActivityLog(db.Model):
     user = db.relationship('User', backref='activities')
 
     def to_dict(self):
-        # Format time to look like "2 hours ago" or standard date
-        now = datetime.datetime.utcnow()
-        diff = now - self.created_at
-        
-        if diff.days == 0:
-            if diff.seconds < 3600:
-                time_str = f"{max(1, diff.seconds // 60)} minutes ago"
-            else:
-                time_str = f"{diff.seconds // 3600} hours ago"
-        elif diff.days == 1:
-            time_str = "Yesterday"
-        else:
-            time_str = self.created_at.strftime('%d %b %Y, %I:%M %p')
-
         return {
             "id": self.id,
             "user": self.user.username if self.user else "System",
             "action": self.action,
             "description": self.description,
             "type": self.log_type,
-            "time": time_str,
-            "raw_date": self.created_at.isoformat()
+            "timestamp": self.created_at.isoformat() # Return raw ISO format
         }
