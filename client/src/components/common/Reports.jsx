@@ -1,36 +1,98 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 
 export default function Reports() {
-    // Static mock data for the reports dashboard
-    const [stats] = useState([
-        { label: 'Total Spend (YTD)', value: '$ 12.4 L', subtext: 'Updated today', color: 'blue' },
-        { label: 'Active Vendors', value: '28', subtext: 'Across all categories', color: 'green' },
-        { label: 'Compliance Rate', value: '94%', subtext: '+2% from last quarter', color: 'yellow' },
-        { label: 'Rejected Quotes', value: '3', subtext: 'In the last 30 days', color: 'red' }
-    ])
+    const [reportData, setReportData] = useState({
+        stats: [],
+        categorySpend: [],
+        topVendors: [],
+        monthlyTrend: []
+    })
+    const [isLoading, setIsLoading] = useState(true)
 
-    const [categorySpend] = useState([
-        { category: 'Furniture', percentage: 45, amount: '$ 5.5 L', color: 'bg-blue' },
-        { category: 'IT Infra', percentage: 30, amount: '$ 3.7 L', color: 'bg-green' },
-        { category: 'Stationery', percentage: 15, amount: '$ 1.8 L', color: 'bg-yellow' },
-        { category: 'Logistics', percentage: 10, amount: '$ 1.4 L', color: 'bg-red' }
-    ])
+    const fetchReports = async () => {
+        try {
+            const response = await axios.get('http://127.0.0.1:5000/api/report/')
+            setReportData(response.data)
+        } catch (error) {
+            console.error("Error fetching reports:", error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
-    const [topVendors] = useState([
-        { name: 'Tech Supplies Co.', spend: '$ 4,20,000', pos: 4 },
-        { name: 'Vendor Infra Sapphire', spend: '$ 3,10,000', pos: 2 },
-        { name: 'Stationery Hub', spend: '$ 1,40,000', pos: 5 },
-        { name: 'Global Office Sol.', spend: '$ 95,000', pos: 1 }
-    ])
+    useEffect(() => {
+        fetchReports()
+    }, [])
 
-    const [monthlyTrend] = useState([
-        { month: 'Jan', height: '40%' },
-        { month: 'Feb', height: '55%' },
-        { month: 'Mar', height: '35%' },
-        { month: 'Apr', height: '80%' },
-        { month: 'May', height: '65%' },
-        { month: 'Jun', height: '90%' }
-    ])
+    // ==========================================
+    // EXPORT TO CSV FUNCTIONALITY
+    // ==========================================
+    const handleExportCSV = () => {
+        let csvLines = [];
+
+        // 1. Title
+        csvLines.push("PROCUREMENT DASHBOARD REPORT");
+        csvLines.push(`Generated on: ${new Date().toLocaleDateString()}`);
+        csvLines.push("");
+
+        // 2. Stats Section
+        csvLines.push("--- KEY METRICS ---");
+        csvLines.push("Metric,Value,Details");
+        reportData.stats.forEach(stat => {
+            // Strip commas from values (like $1,000) to avoid breaking CSV format
+            const cleanValue = stat.value.replace(/,/g, ''); 
+            csvLines.push(`"${stat.label}","${cleanValue}","${stat.subtext}"`);
+        });
+        csvLines.push("");
+
+        // 3. Category Spend Section
+        csvLines.push("--- SPEND BY CATEGORY ---");
+        csvLines.push("Category,Total Amount,Percentage");
+        reportData.categorySpend.forEach(cat => {
+            const cleanAmount = cat.amount.replace(/,/g, '');
+            csvLines.push(`"${cat.category}","${cleanAmount}","${cat.percentage}%"`);
+        });
+        csvLines.push("");
+
+        // 4. Top Vendors Section
+        csvLines.push("--- TOP VENDORS ---");
+        csvLines.push("Vendor Name,Total Spend,PO Count");
+        reportData.topVendors.forEach(vendor => {
+            const cleanSpend = vendor.spend.replace(/,/g, '');
+            csvLines.push(`"${vendor.name}","${cleanSpend}","${vendor.pos}"`);
+        });
+        csvLines.push("");
+
+        // 5. Monthly Trend Section
+        csvLines.push("--- MONTHLY TREND ---");
+        csvLines.push("Month,Spend Amount");
+        reportData.monthlyTrend.forEach(trend => {
+            csvLines.push(`"${trend.month}","${trend.raw}"`);
+        });
+
+        // Compile and Download
+        const csvString = csvLines.join("\n");
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Procurement_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    if (isLoading) {
+        return (
+            <div className="animate-fade-in dashboard-header">
+                <h1>Loading Reports...</h1>
+                <p>Crunching your procurement data.</p>
+            </div>
+        )
+    }
 
     return (
         <div className="animate-fade-in">
@@ -40,14 +102,19 @@ export default function Reports() {
                     <p>Procurement insights, spending trends, and vendor performance.</p>
                 </div>
                 <div className="action-group">
-                    <button className="btn-secondary">📄 Export CSV</button>
-                    <button className="btn-primary">⬇️ Download PDF</button>
+                    {/* Hooked up the Export CSV function here */}
+                    <button className="btn-secondary" onClick={handleExportCSV}>
+                        📄 Export as CSV
+                    </button>
+                    <button className="btn-secondary" onClick={() => window.print()}>
+                        🖨️ Print View
+                    </button>
                 </div>
             </header>
 
             {/* Top Stats Array */}
             <section className="stats-grid">
-                {stats.map((stat, index) => (
+                {reportData.stats.map((stat, index) => (
                     <div 
                         className="stat-card animate-slide-up" 
                         key={index} 
@@ -69,7 +136,7 @@ export default function Reports() {
                         <h2>Spend by Category</h2>
                     </div>
                     <div className="category-list">
-                        {categorySpend.map((cat, idx) => (
+                        {reportData.categorySpend.map((cat, idx) => (
                             <div className="category-item" key={idx}>
                                 <div className="category-info">
                                     <strong>{cat.category}</strong>
@@ -101,7 +168,7 @@ export default function Reports() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {topVendors.map((vendor, idx) => (
+                                {reportData.topVendors.map((vendor, idx) => (
                                     <tr key={idx}>
                                         <td><strong>{vendor.name}</strong></td>
                                         <td className="text-right">{vendor.spend}</td>
@@ -119,10 +186,12 @@ export default function Reports() {
                 <h2>Monthly Procurement Trend (2026)</h2>
                 <div className="chart-placeholder" style={{ height: '260px' }}>
                     <div className="bar-chart full-width-chart">
-                        {monthlyTrend.map((data, idx) => (
+                        {reportData.monthlyTrend.map((data, idx) => (
                             <div className="bar-group" key={idx}>
                                 <div className="bar" style={{ height: data.height, animationDelay: `${idx * 0.1}s` }}>
-                                    <div className="bar-tooltip">{data.height}</div>
+                                    <div className="bar-tooltip" style={{ minWidth: 'max-content' }}>
+                                        ${(data.raw || 0).toLocaleString()}
+                                    </div>
                                 </div>
                                 <span className="bar-label">{data.month}</span>
                             </div>
